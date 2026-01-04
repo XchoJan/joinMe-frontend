@@ -12,6 +12,9 @@ linkage = ENV['USE_FRAMEWORKS']
 if linkage != nil
   Pod::UI.puts "Configuring Pod with #{linkage}ally linked Frameworks".green
   use_frameworks! :linkage => linkage.to_sym
+else
+  # Use frameworks for Firebase (required for Swift pods)
+  use_frameworks! :linkage => :static
 end
 
 target 'JoinMe' do
@@ -30,5 +33,14 @@ target 'JoinMe' do
       :mac_catalyst_enabled => false,
       # :ccache_enabled => true
     )
+    
+    # Enable modular headers for Firebase pods
+    installer.pods_project.targets.each do |target|
+      if target.name.start_with?('Firebase') || target.name.start_with?('Google') || target.name.start_with?('Promises') || target.name.start_with?('nanopb')
+        target.build_configurations.each do |config|
+          config.build_settings['DEFINES_MODULE'] = 'YES'
+        end
+      end
+    end
   end
 end

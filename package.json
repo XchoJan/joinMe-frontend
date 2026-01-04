@@ -7,13 +7,29 @@
     "ios": "react-native run-ios",
     "lint": "eslint .",
     "start": "react-native start",
-    "test": "jest"
+    "test": "jest",
+    "i15": "npx react-native run-ios --simulator='iPhone 15'",
+    "i14": "npx react-native run-ios --simulator='iPhone 14'",
+    "i15pm": "npx react-native run-ios --simulator='iPhone 15 Pro Max'",
+    "pds": "cd ios && pod install && cd .."
   },
   "dependencies": {
+    "@react-native-async-storage/async-storage": "^1.21.0",
+    "@react-native-community/datetimepicker": "^8.5.1",
+    "@react-native-firebase/app": "^23.7.0",
+    "@react-native-firebase/messaging": "^23.7.0",
+    "@react-native/new-app-screen": "0.83.1",
+    "@react-navigation/bottom-tabs": "^6.5.11",
+    "@react-navigation/native": "^6.1.9",
+    "@react-navigation/native-stack": "^6.9.17",
     "react": "19.2.0",
     "react-native": "0.83.1",
-    "@react-native/new-app-screen": "0.83.1",
-    "react-native-safe-area-context": "^5.5.2"
+    "react-native-gesture-handler": "^2.16.1",
+    "react-native-image-picker": "^8.2.1",
+    "react-native-safe-area-context": "^5.5.2",
+    "react-native-screens": "^3.29.0",
+    "react-native-vector-icons": "^10.0.3",
+    "socket.io-client": "^4.8.3"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
