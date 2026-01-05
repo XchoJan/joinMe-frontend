@@ -12,6 +12,9 @@ export interface User {
   telegram?: string;
   city: string;
   gender?: Gender;
+  premium?: boolean;
+  username?: string;
+  password?: string; // Только для отправки, не хранится в состоянии
 }
 
 export interface Event {

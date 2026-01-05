@@ -45,6 +45,12 @@ export const EventsScreen: React.FC = () => {
   const [selectedCity, setSelectedCity] = useState('all');
   const [refreshing, setRefreshing] = useState(false);
 
+  // Загружаем события при монтировании компонента
+  React.useEffect(() => {
+    refreshEvents();
+  }, []);
+
+  // Загружаем события при изменении города
   React.useEffect(() => {
     refreshEvents(selectedCity === 'all' ? undefined : selectedCity);
   }, [selectedCity]);

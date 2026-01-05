@@ -32,6 +32,7 @@ interface AppContextType {
   addUser: (user: User) => void;
   getUserById: (userId: string) => User | undefined;
   loadUser: (userId: string) => Promise<User | undefined>;
+  refreshCurrentUser: () => Promise<void>;
   refreshEvents: (city?: string, silent?: boolean) => Promise<void>;
   refreshChat: (chatId: string) => Promise<void>;
   getPendingRequestsCount: (eventId: string) => number;
@@ -39,6 +40,7 @@ interface AppContextType {
   loadMyEventsRequests: (eventIds: string[]) => Promise<void>;
   showNotification: (title: string, message: string, chatId?: string, eventId?: string) => void;
   hideNotification: () => void;
+  deleteAccount: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -147,20 +149,39 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   }, [currentUser, currentCityFilter]);
 
   const loadCurrentUser = async () => {
+    console.log('=== loadCurrentUser called ===');
     try {
       const userData = await AsyncStorage.getItem('currentUser');
+      console.log('User data from AsyncStorage:', userData ? 'exists' : 'not found');
       if (userData) {
         const user = JSON.parse(userData);
-        setCurrentUserState(user);
-        // Load user from API to get latest data
+        console.log('Parsed user from AsyncStorage:', user);
+        console.log('User premium from cache:', user?.premium);
+        // Load user from API first to get latest data (including premium)
         try {
+          console.log('Loading user from API, userId:', user.id);
           const apiUser = await api.getUser(user.id) as User;
+          console.log('API User response:', apiUser);
+          console.log('API User premium:', apiUser?.premium);
+          // Set user from API (with premium field)
           setCurrentUserState(apiUser);
-        } catch (error) {
-          // Error loading user from API
+          // Update AsyncStorage with latest data from API (including premium field)
+          await AsyncStorage.setItem('currentUser', JSON.stringify(apiUser));
+          console.log('User saved to state and AsyncStorage');
+        } catch (error: any) {
+          console.error('Error loading user from API:', error);
+          console.error('Error message:', error?.message);
+          console.error('Error status:', error?.status);
+          console.error('Error originalError:', error?.originalError);
+          console.error('Error stack:', error?.stack);
+          // If API fails, use cached user
+          setCurrentUserState(user);
         }
+      } else {
+        console.log('No user data in AsyncStorage');
       }
     } catch (error) {
+      console.error('Error loading current user:', error);
       // Error loading current user
     }
   };
@@ -401,6 +422,36 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     return undefined;
   };
 
+  const refreshCurrentUser = async (): Promise<void> => {
+    if (!currentUser) {
+      console.log('refreshCurrentUser: No currentUser to refresh');
+      return;
+    }
+    // Пропускаем обновление для временных пользователей (с ID вида user_*)
+    if (currentUser.id.startsWith('user_')) {
+      console.log('refreshCurrentUser: Skipping refresh for temporary user ID:', currentUser.id);
+      return;
+    }
+    try {
+      console.log('refreshCurrentUser: Loading user from API, userId:', currentUser.id);
+      const apiUser = await api.getUser(currentUser.id) as User;
+      console.log('refreshCurrentUser: API User response:', apiUser);
+      console.log('refreshCurrentUser: API User premium:', apiUser?.premium);
+      setCurrentUserState(apiUser);
+      await AsyncStorage.setItem('currentUser', JSON.stringify(apiUser));
+      console.log('refreshCurrentUser: User updated successfully');
+    } catch (error: any) {
+      console.error('refreshCurrentUser: Error loading user from API:', error);
+      console.error('refreshCurrentUser: Error message:', error?.message);
+      console.error('refreshCurrentUser: Error status:', error?.status);
+      // Если пользователь не найден (404 или 500), это нормально
+      // Не обновляем состояние, оставляем текущего пользователя
+      if (error?.status === 404 || error?.status === 500) {
+        console.log('refreshCurrentUser: User not found on server, keeping cached user');
+      }
+    }
+  };
+
   const getPendingRequestsCount = (eventId: string): number => {
     return requests.filter(r => r.eventId === eventId && r.status === 'pending').length;
   };
@@ -448,6 +499,26 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   const hideNotification = () => {
     setNotification(prev => prev ? { ...prev, visible: false } : null);
+  };
+
+  const deleteAccount = async (): Promise<void> => {
+    if (!currentUser) {
+      throw new Error('No user to delete');
+    }
+
+    try {
+      await api.deleteUser(currentUser.id);
+      // Очищаем все данные пользователя
+      await AsyncStorage.removeItem('currentUser');
+      setCurrentUserState(null);
+      setEvents([]);
+      setChats([]);
+      setRequests([]);
+      setUsers([]);
+    } catch (error: any) {
+      console.error('Error deleting account:', error);
+      throw error;
+    }
   };
 
   // Загружаем и присоединяемся ко всем чатам пользователя для получения уведомлений
@@ -638,6 +709,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         addUser,
         getUserById,
         loadUser,
+        refreshCurrentUser,
         refreshEvents,
         refreshChat,
         getPendingRequestsCount,
@@ -646,6 +718,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         notification,
         showNotification,
         hideNotification,
+        deleteAccount,
       }}
     >
       {children}

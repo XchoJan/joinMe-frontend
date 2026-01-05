@@ -13,36 +13,66 @@ class ApiService {
     endpoint: string,
     options: RequestInit = {},
   ): Promise<T> {
-    const url = `${this.baseUrl}${endpoint}`;
-    const response = await fetch(url, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-    });
+    // Добавляем префикс /api ко всем эндпоинтам (кроме статических файлов)
+    const apiEndpoint = endpoint.startsWith('/uploads/') ? endpoint : `/api${endpoint}`;
+    const url = `${this.baseUrl}${apiEndpoint}`;
+    
+    try {
+      const response = await fetch(url, {
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          ...options.headers,
+        },
+      });
 
-    if (!response.ok) {
-      let errorMessage = `API Error: ${response.statusText}`;
-      try {
-        const errorData = await response.json();
-        if (errorData.message) {
-          if (Array.isArray(errorData.message)) {
-            errorMessage = errorData.message.join(', ');
-          } else {
-            errorMessage = errorData.message;
+      if (!response.ok) {
+        let errorMessage = `API Error: ${response.statusText}`;
+        try {
+          const errorData = await response.json();
+          if (errorData.message) {
+            if (Array.isArray(errorData.message)) {
+              errorMessage = errorData.message.join(', ');
+            } else {
+              errorMessage = errorData.message;
+            }
           }
+        } catch (e) {
+          // Если не удалось распарсить JSON, используем статус
+          errorMessage = `API Error ${response.status}: ${response.statusText}`;
         }
-      } catch (e) {
-        // Если не удалось распарсить JSON, используем статус
-        errorMessage = `API Error ${response.status}: ${response.statusText}`;
+        const error: any = new Error(errorMessage);
+        error.status = response.status;
+        throw error;
       }
-      const error: any = new Error(errorMessage);
-      error.status = response.status;
+
+      try {
+        const data = await response.json();
+        // Логируем ответ для getUser, чтобы проверить наличие premium
+        if (endpoint.includes('/users/') && !endpoint.includes('/block') && !endpoint.includes('/fcm-token')) {
+          console.log('API getUser response:', data);
+          console.log('API getUser premium field:', data?.premium);
+        }
+        return data;
+      } catch (jsonError: any) {
+        console.error('Error parsing JSON response:', jsonError);
+        console.error('Response status:', response.status);
+        console.error('Response statusText:', response.statusText);
+        const error: any = new Error(`Failed to parse JSON response: ${jsonError?.message || jsonError}`);
+        error.originalError = jsonError;
+        throw error;
+      }
+    } catch (fetchError: any) {
+      // Обрабатываем сетевые ошибки
+      console.error('Fetch error:', fetchError);
+      if (fetchError.message && fetchError.message.includes('Internal server')) {
+        // Если это уже обработанная ошибка, пробрасываем дальше
+        throw fetchError;
+      }
+      const error: any = new Error(fetchError?.message || 'Network error');
+      error.originalError = fetchError;
       throw error;
     }
-
-    return response.json();
   }
 
   // Users
@@ -61,6 +91,12 @@ class ApiService {
     return this.request(`/users/${id}`, {
       method: 'PUT',
       body: JSON.stringify(userData),
+    });
+  }
+
+  async deleteUser(id: string) {
+    return this.request(`/users/${id}`, {
+      method: 'DELETE',
     });
   }
 
@@ -94,6 +130,13 @@ class ApiService {
     return result.blocked;
   }
 
+  async login(username: string, password: string) {
+    return this.request('/users/login', {
+      method: 'POST',
+      body: JSON.stringify({ username, password }),
+    });
+  }
+
   async uploadAvatar(fileUri: string, oldPhotoUrl?: string): Promise<{ url: string }> {
     const formData = new FormData();
     
@@ -110,7 +153,7 @@ class ApiService {
       formData.append('oldPhotoUrl', oldPhotoUrl);
     }
 
-    const response = await fetch(`${this.baseUrl}/upload/avatar`, {
+    const response = await fetch(`${this.baseUrl}/api/upload/avatar`, {
       method: 'POST',
       body: formData,
       // Не устанавливаем Content-Type вручную, браузер/React Native установит его автоматически с boundary

@@ -10,6 +10,8 @@ import {
   Platform,
   ActivityIndicator,
   Linking,
+  TextInput,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -54,8 +56,8 @@ const CITIES = [
 
 export const ProfileScreen: React.FC = () => {
   const navigation = useNavigation();
-  const { currentUser, setCurrentUser, loadUser } = useApp();
-  const [isEditing, setIsEditing] = useState(!currentUser);
+  const { currentUser, setCurrentUser, loadUser, refreshCurrentUser, deleteAccount } = useApp();
+  const [isEditing, setIsEditing] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [formData, setFormData] = useState({
     name: currentUser?.name || '',
@@ -64,8 +66,21 @@ export const ProfileScreen: React.FC = () => {
     gender: currentUser?.gender || '' as Gender | '',
     instagram: currentUser?.instagram || '',
     telegram: currentUser?.telegram || '',
+    username: currentUser?.username || '',
+    password: '', // Пароль не сохраняем в состояние, только для отправки
   });
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [loginData, setLoginData] = useState({ username: '', password: '' });
 
+  // Обновляем пользователя с API при открытии профиля
+  React.useEffect(() => {
+    if (currentUser?.id) {
+      console.log('ProfileScreen: Refreshing user from API');
+      refreshCurrentUser().catch(err => {
+        console.error('ProfileScreen: Error refreshing user:', err);
+      });
+    }
+  }, []); // Выполняется только при монтировании
 
   const handlePickImage = () => {
     const imagePicker = require('react-native-image-picker');
@@ -168,7 +183,7 @@ export const ProfileScreen: React.FC = () => {
       return;
     }
 
-    const user = {
+    const user: any = {
       id: currentUser?.id || `user_${Date.now()}`,
       name: formData.name.trim(),
       bio: formData.bio.trim(),
@@ -177,10 +192,62 @@ export const ProfileScreen: React.FC = () => {
       instagram: formData.instagram.trim() || undefined,
       telegram: formData.telegram.trim() || undefined,
       photo: currentUser?.photo, // Сохраняем фото
+      premium: currentUser?.premium || false, // Сохраняем premium статус
     };
+    
+    // Добавляем username и password только если они заполнены
+    if (formData.username.trim()) {
+      user.username = formData.username.trim();
+    }
+    if (formData.password.trim()) {
+      user.password = formData.password.trim();
+    }
 
     setCurrentUser(user);
     setIsEditing(false);
+  };
+
+  const handleLogin = async () => {
+    if (!loginData.username.trim() || !loginData.password.trim()) {
+      Alert.alert('Ошибка', 'Заполните все поля');
+      return;
+    }
+
+    try {
+      const { api } = await import('../services/api');
+      const user = await api.login(loginData.username.trim(), loginData.password) as User;
+      await setCurrentUser(user);
+      setShowLoginModal(false);
+      setLoginData({ username: '', password: '' });
+      Alert.alert('Успешно', 'Вы вошли в свой профиль');
+    } catch (error: any) {
+      Alert.alert('Ошибка', error?.message || 'Неверный никнейм или пароль');
+    }
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      'Удаление аккаунта',
+      'Вы уверены, что хотите удалить свой аккаунт? Это действие нельзя отменить. Все ваши данные, события, чаты и сообщения будут безвозвратно удалены.',
+      [
+        {
+          text: 'Отмена',
+          style: 'cancel',
+        },
+        {
+          text: 'Удалить',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteAccount();
+              Alert.alert('Аккаунт удален', 'Ваш аккаунт был успешно удален.');
+            } catch (error: any) {
+              Alert.alert('Ошибка', error?.message || 'Не удалось удалить аккаунт');
+            }
+          },
+        },
+      ]
+    );
   };
 
   if (!currentUser && !isEditing) {
@@ -192,7 +259,67 @@ export const ProfileScreen: React.FC = () => {
             title="Создать профиль"
             onPress={() => setIsEditing(true)}
           />
+          <View style={{ marginTop: 20 }}>
+            <Button
+              title="Войти по никнейму и паролю"
+              onPress={() => setShowLoginModal(true)}
+              variant="outline"
+            />
+          </View>
         </View>
+
+        <Modal
+          visible={showLoginModal}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowLoginModal(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Вход в профиль</Text>
+              <Text style={styles.modalSubtitle}>
+                Введите никнейм и пароль для входа в существующий профиль
+              </Text>
+              
+              <TextInput
+                style={styles.modalInput}
+                placeholder="Никнейм"
+                value={loginData.username}
+                onChangeText={(text) => setLoginData({ ...loginData, username: text })}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              
+              <TextInput
+                style={styles.modalInput}
+                placeholder="Пароль"
+                value={loginData.password}
+                onChangeText={(text) => setLoginData({ ...loginData, password: text })}
+                secureTextEntry
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+
+              <View style={styles.modalButtons}>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.modalButtonCancel]}
+                  onPress={() => {
+                    setShowLoginModal(false);
+                    setLoginData({ username: '', password: '' });
+                  }}
+                >
+                  <Text style={styles.modalButtonTextCancel}>Отмена</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.modalButtonPrimary]}
+                  onPress={handleLogin}
+                >
+                  <Text style={styles.modalButtonTextPrimary}>Войти</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
       </SafeAreaView>
     );
   }
@@ -299,28 +426,71 @@ export const ProfileScreen: React.FC = () => {
               placeholder="@username"
             />
 
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Вход в профиль (необязательно)</Text>
+              <Text style={styles.sectionDescription}>
+                Заполните эти данные, чтобы не потерять доступ к профилю при переустановке приложения. 
+                Никнейм должен быть уникальным.
+              </Text>
+            </View>
+
+            <Input
+              label="Никнейм"
+              value={formData.username}
+              onChangeText={(text) => setFormData({ ...formData, username: text })}
+              placeholder="Придумайте уникальный никнейм"
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+
+            <Input
+              label="Пароль"
+              value={formData.password}
+              onChangeText={(text) => setFormData({ ...formData, password: text })}
+              placeholder="Придумайте пароль"
+              secureTextEntry
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+
             <View style={styles.buttonContainer}>
               <Button
                 title="Сохранить"
                 onPress={handleSave}
               />
-              {currentUser && (
-                <Button
-                  title="Отмена"
-                  onPress={() => {
-                    setIsEditing(false);
+              <Button
+                title="Отмена"
+                onPress={() => {
+                  setIsEditing(false);
+                  if (currentUser) {
+                    // Если есть пользователь, восстанавливаем его данные
                     setFormData({
                       name: currentUser.name,
                       bio: currentUser.bio || '',
                       city: currentUser.city,
+                      gender: currentUser.gender || '' as Gender | '',
                       instagram: currentUser.instagram || '',
                       telegram: currentUser.telegram || '',
+                      username: currentUser.username || '',
+                      password: '', // Пароль не сохраняем
                     });
-                  }}
-                  variant="outline"
-                  style={styles.cancelButton}
-                />
-              )}
+                  } else {
+                    // Если нет пользователя, очищаем форму
+                    setFormData({
+                      name: '',
+                      bio: '',
+                      city: '',
+                      gender: '' as Gender | '',
+                      instagram: '',
+                      telegram: '',
+                      username: '',
+                      password: '',
+                    });
+                  }
+                }}
+                variant="outline"
+                style={styles.cancelButton}
+              />
             </View>
           </>
         ) : (
@@ -332,6 +502,17 @@ export const ProfileScreen: React.FC = () => {
               )}
               <Text style={styles.city}>📍 {currentUser?.city}</Text>
             </View>
+
+            {!currentUser && (
+              <TouchableOpacity
+                style={styles.settingsButton}
+                onPress={() => setShowLoginModal(true)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.settingsButtonText}>Войти в старый профиль</Text>
+                <Text style={styles.settingsButtonArrow}>›</Text>
+              </TouchableOpacity>
+            )}
 
             <TouchableOpacity
               style={styles.settingsButton}
@@ -362,9 +543,72 @@ export const ProfileScreen: React.FC = () => {
               <Text style={styles.settingsButtonText}>Связаться с нами</Text>
               <Text style={styles.settingsButtonArrow}>›</Text>
             </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.settingsButton, styles.deleteButton]}
+              onPress={handleDeleteAccount}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.settingsButtonText, styles.deleteButtonText]}>Удалить аккаунт</Text>
+              <Text style={[styles.settingsButtonArrow, styles.deleteButtonText]}>›</Text>
+            </TouchableOpacity>
           </>
         )}
       </ScrollView>
+
+      {/* Модальное окно для входа в старый профиль */}
+      <Modal
+        visible={showLoginModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowLoginModal(false)}
+      >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Вход в профиль</Text>
+              <Text style={styles.modalSubtitle}>
+                Введите никнейм и пароль для входа в существующий профиль
+              </Text>
+              
+              <TextInput
+                style={styles.modalInput}
+                placeholder="Никнейм"
+                value={loginData.username}
+                onChangeText={(text) => setLoginData({ ...loginData, username: text })}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              
+              <TextInput
+                style={styles.modalInput}
+                placeholder="Пароль"
+                value={loginData.password}
+                onChangeText={(text) => setLoginData({ ...loginData, password: text })}
+                secureTextEntry
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+
+              <View style={styles.modalButtons}>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.modalButtonCancel]}
+                  onPress={() => {
+                    setShowLoginModal(false);
+                    setLoginData({ username: '', password: '' });
+                  }}
+                >
+                  <Text style={styles.modalButtonTextCancel}>Отмена</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.modalButtonPrimary]}
+                  onPress={handleLogin}
+                >
+                  <Text style={styles.modalButtonTextPrimary}>Войти</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
     </SafeAreaView>
   );
 };
@@ -379,6 +623,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: spacing.md,
+    paddingBottom: spacing.xxl,
   },
   header: {
     flexDirection: 'row',
@@ -500,6 +745,82 @@ const styles = StyleSheet.create({
   settingsButtonArrow: {
     ...typography.h3,
     color: colors.textSecondary,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.lg,
+  },
+  modalContent: {
+    backgroundColor: colors.background,
+    borderRadius: 12,
+    padding: spacing.lg,
+    width: '100%',
+    maxWidth: 400,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: spacing.sm,
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginBottom: spacing.lg,
+  },
+  modalInput: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 8,
+    padding: spacing.md,
+    fontSize: 16,
+    color: colors.text,
+    backgroundColor: colors.surface,
+    marginBottom: spacing.md,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: spacing.md,
+    gap: spacing.md,
+  },
+  modalButton: {
+    flex: 1,
+    padding: spacing.md,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  modalButtonCancel: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  modalButtonPrimary: {
+    backgroundColor: colors.primary,
+  },
+  modalButtonTextCancel: {
+    color: colors.text,
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  modalButtonTextPrimary: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  deleteButton: {
+    marginTop: spacing.xl,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    paddingTop: spacing.md,
+    backgroundColor: colors.surface,
+  },
+  deleteButtonText: {
+    color: colors.error,
+    fontWeight: '600',
   },
 });
 
