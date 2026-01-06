@@ -1,4 +1,4 @@
-import { Platform } from 'react-native';
+import { Platform, PermissionsAndroid } from 'react-native';
 
 // Динамический импорт для избежания ошибок при отсутствии Firebase
 let messaging: any = null;
@@ -71,7 +71,28 @@ class PushNotificationService {
 
         return enabled;
       } else {
-        // Android permissions are automatically granted
+        // Для Android 13+ (API 33+) нужно запросить разрешение POST_NOTIFICATIONS
+        const androidVersion = typeof Platform.Version === 'number' ? Platform.Version : parseInt(Platform.Version, 10);
+        if (androidVersion >= 33) {
+          try {
+            const granted = await PermissionsAndroid.request(
+              PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
+              {
+                title: 'Разрешение на уведомления',
+                message: 'Приложению нужно разрешение для отправки уведомлений о сообщениях и событиях',
+                buttonNeutral: 'Позже',
+                buttonNegative: 'Отмена',
+                buttonPositive: 'Разрешить',
+              }
+            );
+            return granted === PermissionsAndroid.RESULTS.GRANTED;
+          } catch (err) {
+            console.warn('Error requesting notification permission:', err);
+            return false;
+          }
+        }
+        // Для Android ниже 13 версии разрешения предоставляются автоматически
+        // React Native Firebase автоматически создает канал уведомлений
         return true;
       }
     } catch (error: any) {
@@ -114,11 +135,15 @@ class PushNotificationService {
 
     try {
       // Обработчик для фоновых сообщений (когда приложение закрыто)
+      // Для Android: если в сообщении есть поле 'notification', Firebase автоматически покажет уведомление
+      // Этот обработчик вызывается для дополнительной обработки данных
       messaging().setBackgroundMessageHandler(async (remoteMessage: any) => {
-        // Message handled in the background
+        console.log('Background message received:', remoteMessage);
+        // Можно обработать данные сообщения здесь
+        // Например, обновить локальную базу данных или показать локальное уведомление
       });
     } catch (error) {
-      // Error setting up background message handler
+      console.error('Error setting up background message handler:', error);
     }
   }
 
@@ -145,28 +170,29 @@ class PushNotificationService {
     }
 
     try {
-      // Обработчик для уведомлений, которые открыли приложение
+      // Обработчик для уведомлений, которые открыли приложение (когда приложение было закрыто)
       messaging()
         .getInitialNotification()
         .then((remoteMessage: any) => {
           if (remoteMessage) {
+            console.log('Initial notification (app was closed):', remoteMessage);
             onNotificationOpened(remoteMessage);
           }
         })
         .catch((error: any) => {
-          // Error getting initial notification
+          console.error('Error getting initial notification:', error);
         });
 
-      // Обработчик для уведомлений, когда приложение в фоне
-      // Используем новый модульный API (v22+)
-      // onNotificationOpenedApp теперь вызывается через messaging().onNotificationOpenedApp()
+      // Обработчик для уведомлений, когда приложение в фоне (но не закрыто)
       const messagingInstance = messaging();
       const unsubscribe = messagingInstance.onNotificationOpenedApp((remoteMessage: any) => {
+        console.log('Notification opened app (app was in background):', remoteMessage);
         onNotificationOpened(remoteMessage);
       });
 
       return unsubscribe;
     } catch (error) {
+      console.error('Error setting up notification opened handler:', error);
       return () => {};
     }
   }

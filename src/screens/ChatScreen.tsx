@@ -142,22 +142,37 @@ export const ChatScreen: React.FC = () => {
       const { api } = await import('../services/api');
       const chatData = await api.getChat(chatId) as any;
       
+      // Проверяем, что чат существует
+      if (!chatData) {
+        // Чат не найден - показываем пустой экран
+        return;
+      }
+      
       // Обновляем chat
       setChat(chatData);
       
       if (chatData?.messages && chatData.messages.length > 0) {
         setMessages(chatData.messages);
       } else {
-        const messagesData = await api.getMessages(chatId) as any[];
-        setMessages(messagesData);
+        try {
+          const messagesData = await api.getMessages(chatId) as any[];
+          setMessages(messagesData || []);
+        } catch (messagesError) {
+          // Если не удалось загрузить сообщения, просто оставляем пустой массив
+          setMessages([]);
+        }
       }
       
       // Прокручиваем к концу после загрузки сообщений
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: false });
       }, 100);
-    } catch (error) {
-      // Error loading chat
+    } catch (error: any) {
+      console.error('Error loading chat:', error);
+      
+      // При ошибке просто показываем пустой экран
+      // Alert уже показан перед навигацией в EventDetailScreen
+      console.error('Error loading chat:', error);
     }
   };
 
@@ -524,6 +539,30 @@ export const ChatScreen: React.FC = () => {
       <SafeAreaView style={styles.container}>
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>Загрузка чата...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Проверяем, есть ли участники в чате
+  const hasParticipants = chat.participants && chat.participants.length > 0;
+  if (!hasParticipants) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.backButtonText}>← Назад</Text>
+          </TouchableOpacity>
+        </View>
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyText}>В чате пока нет участников</Text>
+          <Text style={[styles.emptyText, { marginTop: 8, fontSize: 14, opacity: 0.7 }]}>
+            Пожалуйста, подождите, пока кто-то откликнется на событие
+          </Text>
         </View>
       </SafeAreaView>
     );

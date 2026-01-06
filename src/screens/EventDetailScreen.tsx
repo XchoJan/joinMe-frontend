@@ -219,21 +219,49 @@ export const EventDetailScreen: React.FC = () => {
   };
 
   const handleOpenChat = async () => {
-    if (eventChat) {
-      // @ts-ignore
-      navigation.navigate('Chat', { chatId: eventChat.id });
-    } else {
-      // Try to load chat from API
-      try {
-        const { api } = await import('../services/api');
-        const chat = await api.getChatByEvent(eventId);
-        if (chat) {
-          // @ts-ignore
-          navigation.navigate('Chat', { chatId: chat.id });
+    try {
+      const { api } = await import('../services/api');
+      let chatToOpen = eventChat;
+      
+      // Если чата нет в кэше, загружаем с API
+      if (!chatToOpen) {
+        try {
+          chatToOpen = await api.getChatByEvent(eventId) as any;
+        } catch (error) {
+          // Чат не найден
         }
-      } catch (error) {
-        // Error loading chat
       }
+      
+      // Проверяем, что чат существует
+      if (!chatToOpen) {
+        Alert.alert(
+          'Чат не готов',
+          'Чат еще не создан. Пожалуйста, подождите, пока кто-то откликнется на событие.',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+      
+      // Проверяем наличие участников
+      if (!chatToOpen.participants || chatToOpen.participants.length === 0) {
+        Alert.alert(
+          'Чат пуст',
+          'В чате пока нет участников. Пожалуйста, подождите, пока кто-то откликнется на событие.',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+      
+      // Если все ок, открываем чат
+      // @ts-ignore
+      navigation.navigate('Chat', { chatId: chatToOpen.id });
+    } catch (error: any) {
+      console.error('Error opening chat:', error);
+      Alert.alert(
+        'Ошибка',
+        'Не удалось открыть чат. Пожалуйста, попробуйте позже.',
+        [{ text: 'OK' }]
+      );
     }
   };
 

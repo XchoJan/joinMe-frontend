@@ -178,8 +178,9 @@ export const ProfileScreen: React.FC = () => {
     );
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!formData.name.trim() || !formData.city) {
+      Alert.alert('Ошибка', 'Заполните имя и город');
       return;
     }
 
@@ -203,8 +204,17 @@ export const ProfileScreen: React.FC = () => {
       user.password = formData.password.trim();
     }
 
-    setCurrentUser(user);
-    setIsEditing(false);
+    try {
+      await setCurrentUser(user);
+      setIsEditing(false);
+      Alert.alert('Успешно', 'Профиль сохранен');
+    } catch (error: any) {
+      console.error('Error saving profile:', error);
+      Alert.alert(
+        'Ошибка', 
+        error?.message || 'Не удалось сохранить профиль. Проверьте подключение к интернету.'
+      );
+    }
   };
 
   const handleLogin = async () => {

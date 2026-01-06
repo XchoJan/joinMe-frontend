@@ -15,6 +15,15 @@ import { name as appName } from './app.json';
 try {
   const { pushNotificationService } = require('./src/services/pushNotifications');
   pushNotificationService.setupBackgroundMessageHandler();
+  
+  // Настраиваем обработчик открытия уведомления при запуске приложения
+  // Это нужно для обработки уведомлений, которые открыли приложение
+  // Основная логика навигации будет в AppContext после входа пользователя
+  pushNotificationService.setupNotificationOpenedHandler((message) => {
+    console.log('Notification opened - app opened from notification (index.js):', message);
+    // Основная навигация будет обработана в AppContext.setupPushNotifications
+    // после того, как пользователь войдет в систему
+  });
 } catch (error) {
   console.warn('Firebase messaging not available:', error);
 }

@@ -124,11 +124,39 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
       pushNotificationService.setupNotificationOpenedHandler((message) => {
         // Обработка открытия уведомления
-        const data = message.data;
-        if (data?.type === 'event_request' && data?.eventId) {
-          // Можно навигировать к событию
-          // navigation.navigate('EventDetail', { eventId: data.eventId });
-        }
+        const data = message.data || {};
+        console.log('Notification opened:', message);
+        console.log('Notification data:', data);
+        
+        // Импортируем navigationRef динамически, чтобы избежать циклических зависимостей
+        import('../navigation/AppNavigator').then(({ navigationRef }) => {
+          // Задержка, чтобы убедиться, что навигация готова
+          setTimeout(() => {
+            if (data.chatId) {
+              // Новое сообщение - открываем чат
+              console.log('Navigating to Chat:', data.chatId);
+              navigationRef.current?.navigate('Chat', { chatId: data.chatId });
+            } else if (data.type === 'event_request' && data.eventId) {
+              // Новый отклик - открываем вкладку "Мои события", затем событие
+              console.log('Navigating to MyEvents tab, then EventDetail:', data.eventId);
+              // Переходим на вкладку "Мои события"
+              navigationRef.current?.navigate('MainTabs', {
+                screen: 'MyEvents',
+              });
+              // Небольшая задержка перед навигацией к событию
+              // EventDetail доступен как в главном стеке, так и внутри MyEventsStack
+              setTimeout(() => {
+                navigationRef.current?.navigate('EventDetail', { eventId: data.eventId });
+              }, 400);
+            } else if (data.eventId) {
+              // Другие типы событий - открываем событие
+              console.log('Navigating to EventDetail:', data.eventId);
+              navigationRef.current?.navigate('EventDetail', { eventId: data.eventId });
+            }
+          }, 500);
+        }).catch((error) => {
+          console.error('Error navigating from notification:', error);
+        });
       });
     } catch (error) {
       // Error setting up push notifications
@@ -187,36 +215,52 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   };
 
   const setCurrentUser = async (user: User | null) => {
-    setCurrentUserState(user);
     if (user) {
       try {
-        await AsyncStorage.setItem('currentUser', JSON.stringify(user));
-        // Save/update user on backend
-        if (user.id) {
+        let savedUser: User;
+        
+        // Сначала пытаемся сохранить/обновить на сервере
+        if (user.id && !user.id.startsWith('user_')) {
+          // Пользователь уже существует в базе, пытаемся обновить
           try {
-            await api.updateUser(user.id, user);
+            savedUser = await api.updateUser(user.id, user) as User;
           } catch (error) {
-            // If user doesn't exist, create it
+            // Если пользователь не найден, создаем нового
             try {
-              const newUser = await api.createUser(user) as User;
-              setCurrentUserState(newUser);
-              await AsyncStorage.setItem('currentUser', JSON.stringify(newUser));
-            } catch (createError) {
-              // Error creating user
+              savedUser = await api.createUser(user) as User;
+            } catch (createError: any) {
+              console.error('Error creating user:', createError);
+              // Если не удалось создать на сервере, не сохраняем локально
+              throw new Error(createError?.message || 'Не удалось создать пользователя');
             }
           }
         } else {
-          const newUser = await api.createUser(user) as User;
-          setCurrentUserState(newUser);
-          await AsyncStorage.setItem('currentUser', JSON.stringify(newUser));
+          // Новый пользователь, создаем на сервере
+          try {
+            savedUser = await api.createUser(user) as User;
+          } catch (createError: any) {
+            console.error('Error creating user:', createError);
+            // Если не удалось создать на сервере, не сохраняем локально
+            throw new Error(createError?.message || 'Не удалось создать пользователя');
+          }
         }
-        if (!users.find(u => u.id === user.id)) {
-          setUsers([...users, user]);
+        
+        // Только после успешного сохранения на сервере сохраняем локально
+        setCurrentUserState(savedUser);
+        await AsyncStorage.setItem('currentUser', JSON.stringify(savedUser));
+        
+        if (!users.find(u => u.id === savedUser.id)) {
+          setUsers([...users, savedUser]);
         }
-      } catch (error) {
-        // Error saving user
+      } catch (error: any) {
+        console.error('Error saving user:', error);
+        // Не сохраняем пользователя локально, если не удалось сохранить на сервере
+        setCurrentUserState(null);
+        await AsyncStorage.removeItem('currentUser');
+        throw error; // Пробрасываем ошибку дальше
       }
     } else {
+      setCurrentUserState(null);
       await AsyncStorage.removeItem('currentUser');
     }
   };

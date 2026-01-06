@@ -1,6 +1,23 @@
-const API_BASE_URL = __DEV__ 
-  ? 'http://localhost:3000' 
-  : 'http://localhost:3000'; // Для iOS симулятора используйте localhost, для Android эмулятора - 10.0.2.2
+import { Platform } from 'react-native';
+
+// Для Android эмулятора используем 10.0.2.2 вместо localhost
+// Для реального Android устройства используйте IP адрес вашего компьютера
+const getApiBaseUrl = () => {
+  if (__DEV__) {
+    if (Platform.OS === 'android') {
+      // Для Android эмулятора
+      return 'http://10.0.2.2:3000';
+      // Для реального Android устройства раскомментируйте и укажите IP вашего компьютера:
+      // return 'http://192.168.1.XXX:3000'; // Замените XXX на ваш IP
+    }
+    // Для iOS симулятора
+    return 'http://localhost:3000';
+  }
+  // Production URL
+  return 'http://localhost:3000';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 class ApiService {
   public baseUrl: string;
@@ -47,7 +64,35 @@ class ApiService {
       }
 
       try {
-        const data = await response.json();
+        // Проверяем, есть ли контент для парсинга
+        const contentType = response.headers.get('content-type');
+        const text = await response.text();
+        
+        // Если ответ пустой, возвращаем null для некоторых эндпоинтов
+        if (!text || text.trim() === '') {
+          if (response.status === 404) {
+            const error: any = new Error('Not found');
+            error.status = 404;
+            throw error;
+          }
+          // Для других статусов возвращаем null, если это ожидаемо
+          if (response.status === 200 || response.status === 201) {
+            return null;
+          }
+        }
+        
+        // Пытаемся распарсить JSON
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch (parseError) {
+          // Если не удалось распарсить, но статус успешный, возвращаем null
+          if (response.status >= 200 && response.status < 300) {
+            return null;
+          }
+          throw parseError;
+        }
+        
         // Логируем ответ для getUser, чтобы проверить наличие premium
         if (endpoint.includes('/users/') && !endpoint.includes('/block') && !endpoint.includes('/fcm-token')) {
           console.log('API getUser response:', data);
@@ -58,7 +103,14 @@ class ApiService {
         console.error('Error parsing JSON response:', jsonError);
         console.error('Response status:', response.status);
         console.error('Response statusText:', response.statusText);
+        
+        // Если это уже ошибка со статусом, пробрасываем её дальше
+        if (jsonError.status) {
+          throw jsonError;
+        }
+        
         const error: any = new Error(`Failed to parse JSON response: ${jsonError?.message || jsonError}`);
+        error.status = response.status;
         error.originalError = jsonError;
         throw error;
       }

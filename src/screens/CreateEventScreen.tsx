@@ -63,15 +63,41 @@ export const CreateEventScreen: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [selectedTime, setSelectedTime] = useState(new Date());
+  // Устанавливаем минимальную дату на вчера, чтобы сегодняшняя дата всегда была доступна
+  const getMinimumDate = () => {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    yesterday.setHours(0, 0, 0, 0);
+    return yesterday;
+  };
+  const getTodayStart = () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return today;
+  };
+  const formatDate = (date: Date): string => {
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}.${month}.${year}`;
+  };
+  const formatTime = (date: Date): string => {
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    return `${hours}:${minutes}`;
+  };
+  const todayStart = getTodayStart();
+  const now = new Date();
+  const [selectedDate, setSelectedDate] = useState(todayStart);
+  const [selectedTime, setSelectedTime] = useState(now);
+  const [minimumDate] = useState(getMinimumDate());
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     city: '',
     location: '',
-    date: '',
-    time: '',
+    date: formatDate(todayStart), // Автоматически устанавливаем сегодняшнюю дату
+    time: formatTime(now), // Автоматически устанавливаем текущее время
     format: '' as EventFormat | '',
     paymentType: '' as PaymentType | '',
     participantLimit: '',
@@ -126,24 +152,54 @@ export const CreateEventScreen: React.FC = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const formatDate = (date: Date): string => {
-    const day = date.getDate().toString().padStart(2, '0');
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const year = date.getFullYear();
-    return `${day}.${month}.${year}`;
-  };
-
-  const formatTime = (date: Date): string => {
-    const hours = date.getHours().toString().padStart(2, '0');
-    const minutes = date.getMinutes().toString().padStart(2, '0');
-    return `${hours}:${minutes}`;
-  };
-
   const handleDateChange = (event: any, date?: Date) => {
+    // На Android проверяем тип события
     if (Platform.OS === 'android') {
+      // Если событие 'dismissed', просто закрываем пикер без изменений
+      if (event.type === 'dismissed') {
+        setShowDatePicker(false);
+        return;
+      }
+      // Если событие 'set' и дата выбрана, обрабатываем
+      if (event.type === 'set' && date) {
+        // Проверяем, что выбранная дата не в прошлом
+        const selectedDateStart = new Date(date);
+        selectedDateStart.setHours(0, 0, 0, 0);
+        const today = getTodayStart();
+        
+        if (selectedDateStart < today) {
+          // Если выбрана прошедшая дата, показываем ошибку
+          setErrors({ ...errors, date: 'Нельзя выбрать прошедшую дату' });
+          setShowDatePicker(false);
+          return;
+        }
+        
+        setSelectedDate(date);
+        setFormData({ ...formData, date: formatDate(date) });
+        setErrors({ ...errors, date: '' });
+        // Закрываем пикер после небольшой задержки, чтобы дата успела установиться
+        setTimeout(() => {
+          setShowDatePicker(false);
+        }, 100);
+        return;
+      }
+      // Если дата не передана, просто закрываем
       setShowDatePicker(false);
+      return;
     }
+    // На iOS обрабатываем как обычно
     if (date) {
+      // Проверяем, что выбранная дата не в прошлом
+      const selectedDateStart = new Date(date);
+      selectedDateStart.setHours(0, 0, 0, 0);
+      const today = getTodayStart();
+      
+      if (selectedDateStart < today) {
+        // Если выбрана прошедшая дата, показываем ошибку
+        setErrors({ ...errors, date: 'Нельзя выбрать прошедшую дату' });
+        return;
+      }
+      
       setSelectedDate(date);
       setFormData({ ...formData, date: formatDate(date) });
       setErrors({ ...errors, date: '' });
@@ -272,7 +328,7 @@ export const CreateEventScreen: React.FC = () => {
                 mode="date"
                 display={Platform.OS === 'ios' ? 'spinner' : 'default'}
                 onChange={handleDateChange}
-                minimumDate={new Date()}
+                minimumDate={minimumDate}
                 locale="ru-RU"
               />
             )}
