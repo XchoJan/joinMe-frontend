@@ -16,6 +16,7 @@ interface PickerProps {
   options: { label: string; value: string }[];
   onSelect: (value: string) => void;
   placeholder?: string;
+  error?: string;
 }
 
 export const Picker: React.FC<PickerProps> = ({
@@ -24,6 +25,7 @@ export const Picker: React.FC<PickerProps> = ({
   options,
   onSelect,
   placeholder = 'Выберите...',
+  error,
 }) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -53,9 +55,13 @@ export const Picker: React.FC<PickerProps> = ({
 
   return (
     <View style={styles.container}>
-      {label && <Text style={styles.label}>{label}</Text>}
+      {label && (
+        <Text style={[styles.label, error && styles.labelError]}>
+          {label} {error && `• ${error}`}
+        </Text>
+      )}
       <TouchableOpacity
-        style={styles.picker}
+        style={[styles.picker, error && styles.pickerError]}
         onPress={handleOpenModal}
         activeOpacity={0.7}
       >
@@ -146,6 +152,9 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
     fontWeight: '500',
   },
+  labelError: {
+    color: colors.error,
+  },
   picker: {
     backgroundColor: colors.surface,
     borderWidth: 1,
@@ -157,6 +166,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     minHeight: 48,
+  },
+  pickerError: {
+    borderColor: colors.error,
   },
   pickerText: {
     ...typography.body,

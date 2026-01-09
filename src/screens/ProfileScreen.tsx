@@ -149,33 +149,22 @@ export const ProfileScreen: React.FC = () => {
     navigation.navigate('AboutApp');
   };
 
-  const handleContactUs = () => {
-    Alert.alert(
-      'Связаться с нами',
-      'Выберите способ связи',
-      [
-        {
-          text: 'Email',
-          onPress: () => {
-            Linking.openURL('mailto:support@joinme.app').catch(() => {
-              Alert.alert('Ошибка', 'Не удалось открыть почтовое приложение');
-            });
-          },
-        },
-        {
-          text: 'Telegram',
-          onPress: () => {
-            Linking.openURL('https://t.me/joinme_support').catch(() => {
-              Alert.alert('Ошибка', 'Не удалось открыть Telegram');
-            });
-          },
-        },
-        {
-          text: 'Отмена',
-          style: 'cancel',
-        },
-      ]
-    );
+  const handleContactUs = async () => {
+    const telegramUsername = 'JoinMe_Support';
+    // Пробуем открыть через приложение Telegram
+    const telegramAppUrl = `tg://resolve?domain=${telegramUsername}`;
+    const webUrl = `https://t.me/${telegramUsername}`;
+    
+    try {
+      const canOpenApp = await Linking.canOpenURL(telegramAppUrl);
+      if (canOpenApp) {
+        await Linking.openURL(telegramAppUrl);
+      } else {
+        await Linking.openURL(webUrl);
+      }
+    } catch (error) {
+      Alert.alert('Ошибка', 'Не удалось открыть Telegram');
+    }
   };
 
   const handleSave = async () => {

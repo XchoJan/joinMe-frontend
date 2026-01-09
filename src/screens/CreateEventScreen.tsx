@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -60,6 +60,7 @@ const CITIES = [
 export const CreateEventScreen: React.FC = () => {
   const navigation = useNavigation();
   const { currentUser, addEvent } = useApp();
+  const scrollViewRef = useRef<ScrollView>(null);
   const [loading, setLoading] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
@@ -122,6 +123,25 @@ export const CreateEventScreen: React.FC = () => {
     );
   }
 
+  const checkTimeValidation = (date: Date, time: Date) => {
+    const now = new Date();
+    const minDateTime = new Date(now.getTime() + 60 * 60 * 1000); // +1 час
+    
+    // Создаем полную дату и время события
+    const selectedDateStart = new Date(date);
+    selectedDateStart.setHours(time.getHours(), time.getMinutes(), 0, 0);
+    
+    // Если дата сегодня, проверяем время
+    const todayStart = getTodayStart();
+    const isToday = selectedDateStart >= todayStart && selectedDateStart < new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
+    
+    if (isToday && selectedDateStart < minDateTime) {
+      const minTimeStr = `${minDateTime.getHours().toString().padStart(2, '0')}:${minDateTime.getMinutes().toString().padStart(2, '0')}`;
+      return `Событие можно создать минимум через час. Ближайшее время: ${minTimeStr}`;
+    }
+    return '';
+  };
+
   const validate = () => {
     const newErrors: Record<string, string> = {};
 
@@ -148,7 +168,50 @@ export const CreateEventScreen: React.FC = () => {
       newErrors.currentParticipants = `Не может быть больше лимита (${participantLimit})`;
     }
 
+    // Проверка времени: событие должно быть минимум через час от текущего момента
+    if (formData.date.trim() && formData.time.trim()) {
+      try {
+        // Парсим выбранную дату (формат: ДД.ММ.ГГГГ)
+        const [day, month, year] = formData.date.split('.');
+        // Парсим выбранное время (формат: ЧЧ:ММ)
+        const [hours, minutes] = formData.time.split(':');
+        
+        // Создаем объект Date для выбранной даты и времени
+        const selectedDateTime = new Date(
+          parseInt(year),
+          parseInt(month) - 1,
+          parseInt(day),
+          parseInt(hours),
+          parseInt(minutes),
+          0,
+          0
+        );
+        
+        // Текущее время
+        const now = new Date();
+        
+        // Минимальное время (текущее время + 1 час)
+        const minDateTime = new Date(now.getTime() + 60 * 60 * 1000);
+        
+        // Проверяем, что выбранное время минимум через час
+        if (selectedDateTime < minDateTime) {
+          const minTimeStr = `${minDateTime.getHours().toString().padStart(2, '0')}:${minDateTime.getMinutes().toString().padStart(2, '0')}`;
+          newErrors.time = `Событие можно создать минимум через час. Ближайшее время: ${minTimeStr}`;
+        }
+      } catch (error) {
+        // Если не удалось распарсить дату/время, ошибка уже будет показана выше
+      }
+    }
+
     setErrors(newErrors);
+    
+    // Если есть ошибки, скроллим вверх
+    if (Object.keys(newErrors).length > 0) {
+      setTimeout(() => {
+        scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+      }, 100);
+    }
+    
     return Object.keys(newErrors).length === 0;
   };
 
@@ -176,7 +239,19 @@ export const CreateEventScreen: React.FC = () => {
         
         setSelectedDate(date);
         setFormData({ ...formData, date: formatDate(date) });
-        setErrors({ ...errors, date: '' });
+        const newErrors = { ...errors, date: '' };
+        
+        // Если время уже выбрано, проверяем его при изменении даты
+        if (formData.time.trim()) {
+          const timeError = checkTimeValidation(date, selectedTime);
+          if (timeError) {
+            newErrors.time = timeError;
+          } else {
+            delete newErrors.time;
+          }
+        }
+        
+        setErrors(newErrors);
         // Закрываем пикер после небольшой задержки, чтобы дата успела установиться
         setTimeout(() => {
           setShowDatePicker(false);
@@ -202,7 +277,19 @@ export const CreateEventScreen: React.FC = () => {
       
       setSelectedDate(date);
       setFormData({ ...formData, date: formatDate(date) });
-      setErrors({ ...errors, date: '' });
+      const newErrors = { ...errors, date: '' };
+      
+      // Если время уже выбрано, проверяем его при изменении даты
+      if (formData.time.trim()) {
+        const timeError = checkTimeValidation(date, selectedTime);
+        if (timeError) {
+          newErrors.time = timeError;
+        } else {
+          delete newErrors.time;
+        }
+      }
+      
+      setErrors(newErrors);
     }
   };
 
@@ -211,6 +298,13 @@ export const CreateEventScreen: React.FC = () => {
       setShowTimePicker(false);
     }
     if (date) {
+      const timeError = checkTimeValidation(selectedDate, date);
+      
+      if (timeError) {
+        setErrors({ ...errors, time: timeError });
+        return;
+      }
+      
       setSelectedTime(date);
       setFormData({ ...formData, time: formatTime(date) });
       setErrors({ ...errors, time: '' });
@@ -267,6 +361,7 @@ export const CreateEventScreen: React.FC = () => {
         style={styles.keyboardView}
       >
         <ScrollView
+          ref={scrollViewRef}
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
@@ -298,8 +393,12 @@ export const CreateEventScreen: React.FC = () => {
             label="Город"
             value={formData.city}
             options={CITIES}
-            onSelect={(value) => setFormData({ ...formData, city: value })}
+            onSelect={(value) => {
+              setFormData({ ...formData, city: value });
+              setErrors({ ...errors, city: '' });
+            }}
             placeholder="Выберите город"
+            error={errors.city}
           />
 
           <Input
@@ -381,16 +480,24 @@ export const CreateEventScreen: React.FC = () => {
             label="Формат"
             value={formData.format}
             options={FORMAT_OPTIONS}
-            onSelect={(value) => setFormData({ ...formData, format: value as EventFormat })}
+            onSelect={(value) => {
+              setFormData({ ...formData, format: value as EventFormat });
+              setErrors({ ...errors, format: '' });
+            }}
             placeholder="Выберите формат"
+            error={errors.format}
           />
 
           <Picker
             label="Кто платит"
             value={formData.paymentType}
             options={PAYMENT_OPTIONS}
-            onSelect={(value) => setFormData({ ...formData, paymentType: value as PaymentType })}
+            onSelect={(value) => {
+              setFormData({ ...formData, paymentType: value as PaymentType });
+              setErrors({ ...errors, paymentType: '' });
+            }}
             placeholder="Выберите вариант"
+            error={errors.paymentType}
           />
 
           <Input
