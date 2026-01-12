@@ -1,20 +1,21 @@
 import { Platform } from 'react-native';
+import axios from 'axios';
 
-// Для Android эмулятора используем 10.0.2.2 вместо localhost
-// Для реального Android устройства используйте IP адрес вашего компьютера
+// Production URL - всегда используем продакшен сервер
+// Для локальной разработки раскомментируйте нужный URL ниже
 const getApiBaseUrl = () => {
-  if (__DEV__) {
-    if (Platform.OS === 'android') {
-      // Для Android эмулятора
-      return 'http://10.0.2.2:3000';
-      // Для реального Android устройства раскомментируйте и укажите IP вашего компьютера:
-      // return 'http://192.168.1.XXX:3000'; // Замените XXX на ваш IP
-    }
-    // Для iOS симулятора
-    return 'http://localhost:3000';
+  // Для локальной разработки используем локальный сервер
+  if (Platform.OS === 'android') {
+    // Для Android эмулятора
+    return 'http://10.0.2.2:3000';
+    // Для реального Android устройства укажите IP вашего компьютера:
+    // return 'http://192.168.1.XXX:3000'; // Замените XXX на ваш IP
   }
-  // Production URL
+  // Для iOS симулятора
   return 'http://localhost:3000';
+  
+  // Продакшен URL (закомментирован для локальной разработки):
+  // return 'https://musicialconnect.com/api';
 };
 
 const API_BASE_URL = getApiBaseUrl();
@@ -29,18 +30,50 @@ class ApiService {
   private async request<T>(
     endpoint: string,
     options: RequestInit = {},
-  ): Promise<T> {
+  ): Promise<T | null> {
     // Добавляем префикс /api ко всем эндпоинтам (кроме статических файлов)
-    const apiEndpoint = endpoint.startsWith('/uploads/') ? endpoint : `/api${endpoint}`;
+    // Если baseUrl уже содержит /api, не добавляем префикс повторно
+    let apiEndpoint: string;
+    if (endpoint.startsWith('/uploads/')) {
+      apiEndpoint = endpoint;
+    } else if (this.baseUrl.includes('/api')) {
+      // Если baseUrl уже содержит /api, не добавляем префикс
+      apiEndpoint = endpoint;
+    } else {
+      // Для локальной разработки добавляем префикс /api
+      apiEndpoint = `/api${endpoint}`;
+    }
     const url = `${this.baseUrl}${apiEndpoint}`;
     
     try {
+      // Добавляем User-Agent для мобильных приложений
+      const defaultHeaders: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'User-Agent': 'JoinMe-Mobile-App',
+      };
+      
+      // Объединяем заголовки, правильно обрабатывая Headers объект
+      const headers = new Headers(defaultHeaders);
+      if (options.headers) {
+        if (options.headers instanceof Headers) {
+          options.headers.forEach((value, key) => {
+            headers.set(key, value);
+          });
+        } else if (Array.isArray(options.headers)) {
+          options.headers.forEach(([key, value]) => {
+            headers.set(key, value);
+          });
+        } else {
+          Object.entries(options.headers).forEach(([key, value]) => {
+            headers.set(key, value as string);
+          });
+        }
+      }
+      
       const response = await fetch(url, {
         ...options,
-        headers: {
-          'Content-Type': 'application/json',
-          ...options.headers,
-        },
+        headers,
       });
 
       if (!response.ok) {
@@ -179,7 +212,7 @@ class ApiService {
 
   async isBlocked(blockerId: string, blockedUserId: string): Promise<boolean> {
     const result = await this.request<{ blocked: boolean }>(`/users/${blockerId}/is-blocked/${blockedUserId}`);
-    return result.blocked;
+    return result?.blocked ?? false;
   }
 
   async login(username: string, password: string) {
@@ -205,7 +238,13 @@ class ApiService {
       formData.append('oldPhotoUrl', oldPhotoUrl);
     }
 
-    const response = await fetch(`${this.baseUrl}/api/upload/avatar`, {
+    // Формируем URL для загрузки аватара
+    // Если baseUrl уже содержит /api, не добавляем префикс повторно
+    const uploadUrl = this.baseUrl.includes('/api') 
+      ? `${this.baseUrl}/upload/avatar`
+      : `${this.baseUrl}/api/upload/avatar`;
+    
+    const response = await fetch(uploadUrl, {
       method: 'POST',
       body: formData,
       // Не устанавливаем Content-Type вручную, браузер/React Native установит его автоматически с boundary
@@ -334,6 +373,50 @@ class ApiService {
       method: 'DELETE',
       body: JSON.stringify({ userId }),
     });
+  }
+
+  // Ping endpoint для проверки подключения к серверу
+  async ping() {
+    const fullUrl = `${this.baseUrl}/ping`;
+    console.log('=== PING REQUEST (AXIOS) ===');
+    console.log('Full URL:', fullUrl);
+    console.log('Base URL:', this.baseUrl);
+    
+    try {
+      const response = await axios.get(fullUrl, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        timeout: 10000, // 10 секунд таймаут
+      });
+      
+      console.log('Ping response status:', response.status, response.statusText);
+      console.log('Ping response data:', response.data);
+      console.log('Ping response headers:', response.headers);
+      console.log('=== PING SUCCESS (AXIOS) ===');
+      return response.data;
+    } catch (error: any) {
+      console.error('=== PING ERROR (AXIOS) ===');
+      console.error('Error type:', error?.name);
+      console.error('Error message:', error?.message);
+      if (error.response) {
+        // Сервер ответил с кодом ошибки
+        console.error('Response status:', error.response.status);
+        console.error('Response data:', error.response.data);
+        console.error('Response headers:', error.response.headers);
+      } else if (error.request) {
+        // Запрос был отправлен, но ответа не получено
+        console.error('Request was made but no response received');
+        console.error('Request:', error.request);
+      } else {
+        // Ошибка при настройке запроса
+        console.error('Error setting up request:', error.message);
+      }
+      console.error('Full URL:', fullUrl);
+      console.error('Complete error:', error);
+      throw error;
+    }
   }
 }
 

@@ -12,6 +12,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useApp } from '../context/AppContext';
 import { User } from '../types';
 import { colors, spacing, typography } from '../theme/colors';
+import BackIcon from '../assets/icons/BackIcon';
 
 export const SettingsScreen: React.FC = () => {
   const navigation = useNavigation();
@@ -77,7 +78,7 @@ export const SettingsScreen: React.FC = () => {
           onPress={() => navigation.goBack()}
           activeOpacity={0.7}
         >
-          <Text style={styles.backButtonText}>← Назад</Text>
+          <BackIcon width={24} height={24} fill={colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Настройки</Text>
         <View style={styles.backButton} />

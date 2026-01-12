@@ -13,6 +13,12 @@ import { Event, EventRequest } from '../types';
 import { useApp } from '../context/AppContext';
 import { Button } from '../components/Button';
 import { colors, spacing, typography } from '../theme/colors';
+import LocationIcon from '../assets/icons/LocationIcon';
+import BackIcon from '../assets/icons/BackIcon';
+import TabCalendarInactiv from '../assets/icons/TabCalendarInactiv';
+import WalletIcon from '../assets/icons/WalletIcon';
+import UserIcon from '../assets/icons/UserIcon';
+import ParticipantsIcon from '../assets/icons/ParticipantsIcon';
 
 export const EventDetailScreen: React.FC = () => {
   const route = useRoute();
@@ -311,7 +317,7 @@ export const EventDetailScreen: React.FC = () => {
           onPress={() => navigation.goBack()}
           activeOpacity={0.7}
         >
-          <Text style={styles.backButtonText}>←</Text>
+          <BackIcon width={24} height={24} fill={colors.text} />
         </TouchableOpacity>
       </View>
       <ScrollView
@@ -328,24 +334,36 @@ export const EventDetailScreen: React.FC = () => {
         <Text style={styles.description}>{event.description}</Text>
 
         <View style={styles.infoSection}>
-          <Text style={styles.infoLabel}>📍 Место</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <LocationIcon width={16} height={16} fill={colors.textSecondary} />
+            <Text style={styles.infoLabel}>Место</Text>
+          </View>
           <Text style={styles.infoValue}>{event.location}, {event.city}</Text>
         </View>
 
         <View style={styles.infoSection}>
-          <Text style={styles.infoLabel}>📅 Дата и время</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <TabCalendarInactiv width={16} height={16} fill={colors.textSecondary} />
+            <Text style={styles.infoLabel}>Дата и время</Text>
+          </View>
           <Text style={styles.infoValue}>
             {formatDate(event.date)} в {event.time}
           </Text>
         </View>
 
         <View style={styles.infoSection}>
-          <Text style={styles.infoLabel}>💰 Кто платит</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <WalletIcon width={16} height={16} fill={colors.textSecondary} />
+            <Text style={styles.infoLabel}>Кто платит</Text>
+          </View>
           <Text style={styles.infoValue}>{paymentLabels[event.paymentType]}</Text>
         </View>
 
         <View style={styles.infoSection}>
-          <Text style={styles.infoLabel}>👥 Участники</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <ParticipantsIcon width={16} height={16} fill={colors.textSecondary} />
+            <Text style={styles.infoLabel}>Участники</Text>
+          </View>
           <Text style={styles.infoValue}>
             {event.currentParticipants || (event.participants?.length || 0)} / {event.participantLimit}
             {event.currentParticipants && event.currentParticipants > 1 && (
@@ -362,7 +380,10 @@ export const EventDetailScreen: React.FC = () => {
         </View>
 
         <View style={styles.infoSection}>
-          <Text style={styles.infoLabel}>👤 Имя</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <UserIcon width={16} height={16} fill={colors.textSecondary} />
+            <Text style={styles.infoLabel}>Имя</Text>
+          </View>
           <TouchableOpacity
             onPress={() => {
               // @ts-ignore

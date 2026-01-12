@@ -13,6 +13,7 @@ import { Event } from '../types';
 import { useApp } from '../context/AppContext';
 import { EventCard } from '../components/EventCard';
 import { colors, spacing, typography } from '../theme/colors';
+import TrashIcon from '../assets/icons/TrashIcon';
 
 type TabType = 'created' | 'participations';
 
@@ -162,7 +163,10 @@ export const MyEventsScreen: React.FC = () => {
                   style={styles.deleteButton}
                   onPress={() => handleDeleteEvent(item)}
                 >
-                  <Text style={styles.deleteButtonText}>🗑️ Удалить</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <TrashIcon width={16} height={16} fill={colors.error} />
+                    <Text style={styles.deleteButtonText}>Удалить</Text>
+                  </View>
                 </TouchableOpacity>
               )}
             </View>

@@ -83,6 +83,11 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   // Load current user from AsyncStorage on mount
   useEffect(() => {
     loadCurrentUser();
+    
+    // Проверяем подключение к серверу
+    api.ping().catch((error) => {
+      console.warn('Ping failed:', error);
+    });
   }, []);
 
   // Load events when user changes

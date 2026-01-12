@@ -5,11 +5,14 @@ import {
   StyleSheet,
   ScrollView,
   Image,
+  TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { useApp } from '../context/AppContext';
 import { colors, spacing, typography } from '../theme/colors';
+import LocationIcon from '../assets/icons/LocationIcon';
+import BackIcon from '../assets/icons/BackIcon';
 
 export const UserProfileScreen: React.FC = () => {
   const route = useRoute();
@@ -28,12 +31,12 @@ export const UserProfileScreen: React.FC = () => {
       setLoading(true);
       // Сначала проверяем кэш
       let userData = getUserById(userId);
-      
+
       // Если нет в кэше, загружаем с API
       if (!userData) {
         userData = await loadUser(userId);
       }
-      
+
       setUser(userData);
     } catch (error) {
       // Error loading user profile
@@ -65,9 +68,13 @@ export const UserProfileScreen: React.FC = () => {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        <Text style={styles.backButton} onPress={() => navigation.goBack()}>
-          ← Назад
-        </Text>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.7}
+        >
+          <BackIcon width={24} height={24} fill={colors.text} />
+        </TouchableOpacity>
         <Text style={styles.headerTitle}>Профиль</Text>
         <View style={styles.backButton} />
       </View>
@@ -94,13 +101,16 @@ export const UserProfileScreen: React.FC = () => {
 
         <View style={styles.infoContainer}>
           <Text style={styles.name}>{user.name}</Text>
-          
+
           {user.bio && (
             <Text style={styles.bio}>{user.bio}</Text>
           )}
 
           <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>📍 Город</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <LocationIcon width={16} height={16} fill={colors.textSecondary} />
+              <Text style={styles.infoLabel}>Город</Text>
+            </View>
             <Text style={styles.infoValue}>{user.city}</Text>
           </View>
         </View>

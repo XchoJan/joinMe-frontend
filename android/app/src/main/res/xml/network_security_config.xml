@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- Разрешаем HTTPS трафик к нашему домену -->
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">musicialconnect.com</domain>
+        <trust-anchors>
+            <!-- Доверяем системным сертификатам -->
+            <certificates src="system" />
+            <!-- Доверяем пользовательским сертификатам (для разработки) -->
+            <certificates src="user" />
+        </trust-anchors>
+    </domain-config>
+    
+    <!-- Для локальной разработки разрешаем HTTP -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">localhost</domain>
+        <domain includeSubdomains="true">10.0.2.2</domain>
+        <domain includeSubdomains="true">127.0.0.1</domain>
+    </domain-config>
+</network-security-config>
+

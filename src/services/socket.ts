@@ -1,11 +1,22 @@
 import io, { Socket } from 'socket.io-client';
 import { Platform } from 'react-native';
 
-// Используем тот же URL, что и в api.ts
-// Для iOS симулятора используем localhost, для Android эмулятора - 10.0.2.2
-const SOCKET_URL = Platform.OS === 'android' 
-  ? 'http://10.0.2.2:3000'
-  : 'http://localhost:3000';
+// Socket URL для локальной разработки
+const getSocketUrl = () => {
+  if (Platform.OS === 'android') {
+    // Для Android эмулятора
+    return 'http://10.0.2.2:3000';
+    // Для реального Android устройства укажите IP вашего компьютера:
+    // return 'http://192.168.1.XXX:3000'; // Замените XXX на ваш IP
+  }
+  // Для iOS симулятора
+  return 'http://localhost:3000';
+  
+  // Продакшен URL (закомментирован для локальной разработки):
+  // return 'https://musicialconnect.com/socket.io/';
+};
+
+const SOCKET_URL = getSocketUrl();
 
 class SocketService {
   private socket: Socket | null = null;

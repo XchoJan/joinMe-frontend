@@ -9,6 +9,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { colors, spacing, typography } from '../theme/colors';
+import BackIcon from '../assets/icons/BackIcon';
 
 export const AboutAppScreen: React.FC = () => {
   const navigation = useNavigation();
@@ -21,7 +22,7 @@ export const AboutAppScreen: React.FC = () => {
           onPress={() => navigation.goBack()}
           activeOpacity={0.7}
         >
-          <Text style={styles.backButtonText}>← Назад</Text>
+          <BackIcon width={24} height={24} fill={colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>О приложении</Text>
         <View style={styles.backButton} />

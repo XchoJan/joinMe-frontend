@@ -21,6 +21,9 @@ import { colors, spacing, typography } from '../theme/colors';
 import { socketService } from '../services/socket';
 import { Event } from '../types';
 import { setCurrentOpenChatId } from '../services/currentChat';
+import BackIcon from '../assets/icons/BackIcon';
+import ParticipantsIcon from '../assets/icons/ParticipantsIcon';
+import TrashIcon from '../assets/icons/TrashIcon';
 
 export const ChatScreen: React.FC = () => {
   const route = useRoute();
@@ -555,7 +558,7 @@ export const ChatScreen: React.FC = () => {
             onPress={() => navigation.goBack()}
             activeOpacity={0.7}
           >
-            <Text style={styles.backButtonText}>← Назад</Text>
+            <BackIcon width={24} height={24} fill={colors.text} />
           </TouchableOpacity>
         </View>
         <View style={styles.emptyContainer}>
@@ -588,7 +591,7 @@ export const ChatScreen: React.FC = () => {
           onPress={() => navigation.goBack()}
           activeOpacity={0.7}
         >
-          <Text style={styles.backButtonText}>← Назад</Text>
+          <BackIcon width={24} height={24} fill={colors.text} />
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.headerTitleContainer}
@@ -614,16 +617,19 @@ export const ChatScreen: React.FC = () => {
               onPress={handleDeleteAllMessages}
               activeOpacity={0.7}
             >
-              <Text style={styles.deleteAllButtonText}>🗑️</Text>
+              <TrashIcon width={20} height={20} fill={colors.error} />
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.participantsButton}
               onPress={() => setShowParticipants(!showParticipants)}
               activeOpacity={0.7}
             >
-              <Text style={styles.participantsButtonText}>
-                👥 {participants.length}
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <ParticipantsIcon width={16} height={16} fill={colors.primary} />
+                <Text style={styles.participantsButtonText}>
+                  {participants.length}
+                </Text>
+              </View>
             </TouchableOpacity>
           </View>
         ) : (
@@ -663,7 +669,7 @@ export const ChatScreen: React.FC = () => {
                       style={styles.removeButton}
                       onPress={() => handleRemoveParticipant(participant.id)}
                     >
-                      <Text style={styles.removeButtonText}>🗑️</Text>
+                      <TrashIcon width={20} height={20} fill={colors.error} />
                     </TouchableOpacity>
                   </View>
                 )}

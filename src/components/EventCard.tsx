@@ -9,6 +9,12 @@ import { useNavigation } from '@react-navigation/native';
 import { Event } from '../types';
 import { colors, spacing, typography } from '../theme/colors';
 import { useApp } from '../context/AppContext';
+import ProfileInactive from "../assets/icons/ProfileInactive";
+import ProfileActive from "../assets/icons/ProfileActive";
+import LocationIcon from "../assets/icons/LocationIcon";
+import TabCalendarInactiv from "../assets/icons/TabCalendarInactiv";
+import WalletIcon from "../assets/icons/WalletIcon";
+import UserIcon from "../assets/icons/UserIcon";
 
 interface EventCardProps {
   event: Event;
@@ -28,14 +34,14 @@ export const EventCard: React.FC<EventCardProps> = ({ event, onPress, pendingReq
         setAuthor((event as any).author);
         return;
       }
-      
+
       // Сначала проверяем в контексте
       const authorFromContext = getUserById(event.authorId);
       if (authorFromContext) {
         setAuthor(authorFromContext);
         return;
       }
-      
+
       // Если нет в контексте, загружаем из API
       try {
         const loadedAuthor = await loadUser(event.authorId);
@@ -116,19 +122,31 @@ export const EventCard: React.FC<EventCardProps> = ({ event, onPress, pendingReq
       </Text>
 
       <View style={styles.info}>
-        <Text style={styles.infoText}>
-          📍 {event.location}, {event.city}
-        </Text>
-        <Text style={styles.infoText}>
-          📅 {formatDate(event.date)} в {formatTime(event.time)}
-        </Text>
-        <Text style={styles.infoText}>
-          💰 {paymentLabels[event.paymentType]}
-        </Text>
-        <View>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <LocationIcon width={16} height={16} fill={colors.textSecondary} />
           <Text style={styles.infoText}>
-            👤 Имя: {author?.name || 'Автор'}
+            {event.location}, {event.city}
           </Text>
+        </View>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <TabCalendarInactiv width={16} height={16} fill={colors.textSecondary} />
+          <Text style={styles.infoText}>
+            {formatDate(event.date)} в {formatTime(event.time)}
+          </Text>
+        </View>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <WalletIcon width={16} height={16} fill={colors.textSecondary} />
+          <Text style={styles.infoText}>
+            {paymentLabels[event.paymentType]}
+          </Text>
+        </View>
+        <View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <UserIcon width={16} height={16} fill={colors.textSecondary} />
+            <Text style={styles.infoText}>
+              Имя: {author?.name || 'Автор'}
+            </Text>
+          </View>
           {event.authorGender && (
             <Text style={styles.infoText}>
               Пол: {getGenderLabel(event.authorGender)}

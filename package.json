@@ -22,6 +22,7 @@
     "@react-navigation/bottom-tabs": "^6.5.11",
     "@react-navigation/native": "^6.1.9",
     "@react-navigation/native-stack": "^6.9.17",
+    "axios": "^1.13.2",
     "react": "19.2.0",
     "react-native": "0.83.1",
     "react-native-gesture-handler": "^2.16.1",
@@ -29,7 +30,8 @@
     "react-native-safe-area-context": "^5.5.2",
     "react-native-screens": "^4.19.0",
     "react-native-vector-icons": "^10.0.3",
-    "socket.io-client": "^4.8.3"
+    "socket.io-client": "^4.8.3",
+    "react-native-svg": "^15.6.0"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

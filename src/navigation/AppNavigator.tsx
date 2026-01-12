@@ -15,6 +15,14 @@ import { SettingsScreen } from '../screens/SettingsScreen';
 import { AboutAppScreen } from '../screens/AboutAppScreen';
 import { useApp } from '../context/AppContext';
 import { InAppNotification } from '../components/InAppNotification';
+import TabCalendarActive from '../assets/icons/TabCalendarActive';
+import TabCalendarInactiv from '../assets/icons/TabCalendarInactiv';
+import CreateEventActive from '../assets/icons/CreateEventActive';
+import CreateEventInactive from '../assets/icons/CreateEventInactive';
+import MyEventsActive from '../assets/icons/MyEventsActive';
+import MyEventsInactive from '../assets/icons/MyEventsInactive';
+import ProfileActive from '../assets/icons/ProfileActive';
+import ProfileInactive from '../assets/icons/ProfileInactive';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -63,7 +71,15 @@ const MainTabs = () => {
         component={EventsStack}
         options={{
           tabBarLabel: 'События',
-          tabBarIcon: ({ color }) => <Text style={{ fontSize: 20, color, bottom: 12 }}>📅</Text>,
+          tabBarIcon: ({ color, focused }) => (
+            <View style={{ bottom: 12 }}>
+              {focused ? (
+                <TabCalendarActive width={24} height={24} fill={color} />
+              ) : (
+                <TabCalendarInactiv width={24} height={24} fill={color} />
+              )}
+            </View>
+          ),
           tabBarLabelStyle: {bottom: 24},
           tabBarButton: (props) => {
             const isFocused = props.accessibilityState?.selected || false;
@@ -90,7 +106,15 @@ const MainTabs = () => {
         component={CreateEventScreen}
         options={{
           tabBarLabel: 'Создать',
-          tabBarIcon: ({ color }) => <Text style={{ fontSize: 20, color, bottom: 12 }}>➕</Text>,
+          tabBarIcon: ({ color, focused }) => (
+            <View style={{ bottom: 12 }}>
+              {focused ? (
+                <CreateEventActive width={24} height={24} fill={color} />
+              ) : (
+                <CreateEventInactive width={24} height={24} fill={color} />
+              )}
+            </View>
+          ),
           tabBarLabelStyle: {bottom: 24},
           tabBarButton: (props) => {
             const isFocused = props.accessibilityState?.selected || false;
@@ -117,9 +141,13 @@ const MainTabs = () => {
         component={MyEventsStack}
         options={{
           tabBarLabel: 'Мои события',
-          tabBarIcon: ({ color }) => (
-            <View style={{ position: 'relative' }}>
-              <Text style={{ fontSize: 20, color, bottom: 12}}>⭐</Text>
+          tabBarIcon: ({ color, focused }) => (
+            <View style={{ position: 'relative', bottom: 12 }}>
+              {focused ? (
+                <MyEventsActive width={24} height={24} fill={color} />
+              ) : (
+                <MyEventsInactive width={24} height={24} fill={color} />
+              )}
               {pendingCount > 0 && (
                 <View
                   style={{
@@ -174,7 +202,15 @@ const MainTabs = () => {
         component={ProfileScreen}
         options={{
           tabBarLabel: 'Профиль',
-          tabBarIcon: ({ color }) => <Text style={{ fontSize: 20, color, bottom: 12 }}>👤</Text>,
+          tabBarIcon: ({ color, focused }) => (
+            <View style={{ bottom: 12 }}>
+              {focused ? (
+                <ProfileActive width={24} height={24} fill={color} />
+              ) : (
+                <ProfileInactive width={24} height={24} fill={color} />
+              )}
+            </View>
+          ),
           tabBarLabelStyle: {bottom: 24},
           tabBarButton: (props) => {
             const isFocused = props.accessibilityState?.selected || false;

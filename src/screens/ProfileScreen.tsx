@@ -25,6 +25,7 @@ import { Picker } from '../components/Picker';
 import { Button } from '../components/Button';
 import { Gender, User } from '../types';
 import { colors, spacing, typography } from '../theme/colors';
+import LocationIcon from '../assets/icons/LocationIcon';
 
 const GENDER_OPTIONS: { label: string; value: Gender }[] = [
   { label: 'Мужской', value: 'male' },
@@ -84,7 +85,7 @@ export const ProfileScreen: React.FC = () => {
 
   const handlePickImage = () => {
     const imagePicker = require('react-native-image-picker');
-    
+
     if (!imagePicker || !imagePicker.launchImageLibrary) {
       Alert.alert(
         'Ошибка',
@@ -133,7 +134,7 @@ export const ProfileScreen: React.FC = () => {
             photo: `${api.baseUrl}${result.url}`,
           };
           await setCurrentUser(updatedUser);
-          
+
           Alert.alert('Успешно', 'Фото профиля обновлено');
         } catch (error: any) {
           Alert.alert('Ошибка', error?.message || 'Не удалось загрузить фото');
@@ -154,7 +155,7 @@ export const ProfileScreen: React.FC = () => {
     // Пробуем открыть через приложение Telegram
     const telegramAppUrl = `tg://resolve?domain=${telegramUsername}`;
     const webUrl = `https://t.me/${telegramUsername}`;
-    
+
     try {
       const canOpenApp = await Linking.canOpenURL(telegramAppUrl);
       if (canOpenApp) {
@@ -184,7 +185,7 @@ export const ProfileScreen: React.FC = () => {
       photo: currentUser?.photo, // Сохраняем фото
       premium: currentUser?.premium || false, // Сохраняем premium статус
     };
-    
+
     // Добавляем username и password только если они заполнены
     if (formData.username.trim()) {
       user.username = formData.username.trim();
@@ -200,7 +201,7 @@ export const ProfileScreen: React.FC = () => {
     } catch (error: any) {
       console.error('Error saving profile:', error);
       Alert.alert(
-        'Ошибка', 
+        'Ошибка',
         error?.message || 'Не удалось сохранить профиль. Проверьте подключение к интернету.'
       );
     }
@@ -279,7 +280,7 @@ export const ProfileScreen: React.FC = () => {
               <Text style={styles.modalSubtitle}>
                 Введите никнейм и пароль для входа в существующий профиль
               </Text>
-              
+
               <TextInput
                 style={styles.modalInput}
                 placeholder="Никнейм"
@@ -288,7 +289,7 @@ export const ProfileScreen: React.FC = () => {
                 autoCapitalize="none"
                 autoCorrect={false}
               />
-              
+
               <TextInput
                 style={styles.modalInput}
                 placeholder="Пароль"
@@ -428,7 +429,7 @@ export const ProfileScreen: React.FC = () => {
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Вход в профиль (необязательно)</Text>
               <Text style={styles.sectionDescription}>
-                Заполните эти данные, чтобы не потерять доступ к профилю при переустановке приложения. 
+                Заполните эти данные, чтобы не потерять доступ к профилю при переустановке приложения.
                 Никнейм должен быть уникальным.
               </Text>
             </View>
@@ -499,7 +500,10 @@ export const ProfileScreen: React.FC = () => {
               {currentUser?.bio && (
                 <Text style={styles.bio}>{currentUser.bio}</Text>
               )}
-              <Text style={styles.city}>📍 {currentUser?.city}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <LocationIcon width={16} height={16} fill={colors.textSecondary} />
+                <Text style={styles.city}>{currentUser?.city}</Text>
+              </View>
             </View>
 
             {!currentUser && (
@@ -568,7 +572,7 @@ export const ProfileScreen: React.FC = () => {
               <Text style={styles.modalSubtitle}>
                 Введите никнейм и пароль для входа в существующий профиль
               </Text>
-              
+
               <TextInput
                 style={styles.modalInput}
                 placeholder="Никнейм"
@@ -577,7 +581,7 @@ export const ProfileScreen: React.FC = () => {
                 autoCapitalize="none"
                 autoCorrect={false}
               />
-              
+
               <TextInput
                 style={styles.modalInput}
                 placeholder="Пароль"
