@@ -6,6 +6,7 @@ import { Text, View, TouchableOpacity } from 'react-native';
 import { colors, spacing } from '../theme/colors';
 import { EventsScreen } from '../screens/EventsScreen';
 import { CreateEventScreen } from '../screens/CreateEventScreen';
+import { SelectVenueScreen } from '../screens/SelectVenueScreen';
 import { MyEventsScreen } from '../screens/MyEventsScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { EventDetailScreen } from '../screens/EventDetailScreen';
@@ -103,7 +104,7 @@ const MainTabs = () => {
       />
       <Tab.Screen
         name="Create"
-        component={CreateEventScreen}
+        component={SelectVenueScreen}
         options={{
           tabBarLabel: 'Создать',
           tabBarIcon: ({ color, focused }) => (
@@ -268,6 +269,8 @@ export const AppNavigator = () => {
       <NavigationContainer ref={navigationRef}>
         <Stack.Navigator screenOptions={{ headerShown: false }}>
           <Stack.Screen name="MainTabs" component={MainTabs} />
+          <Stack.Screen name="SelectVenue" component={SelectVenueScreen} />
+          <Stack.Screen name="CreateEvent" component={CreateEventScreen} />
           <Stack.Screen name="Chat" component={ChatScreen} />
           <Stack.Screen name="EventDetail" component={EventDetailScreen} />
           <Stack.Screen name="UserProfile" component={UserProfileScreen} />

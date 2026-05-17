@@ -7,9 +7,9 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:415650348282:android:7f23358043b92184ad1d43",
+        "mobilesdk_app_id": "1:415650348282:android:9a92eb990df7a0a1ad1d43",
         "android_client_info": {
-          "package_name": "com.joinme"
+          "package_name": "com.theJoinMe.app"
         }
       },
       "oauth_client": [],

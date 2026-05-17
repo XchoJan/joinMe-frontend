@@ -343,7 +343,7 @@ export const ProfileScreen: React.FC = () => {
           <View style={styles.avatar}>
             {currentUser?.photo ? (
               <Image
-                source={{ uri: currentUser.photo }}
+                source={{ uri: 'https://musicialconnect.com/' + currentUser.photo }}
                 style={styles.avatarImage}
                 resizeMode="cover"
               />

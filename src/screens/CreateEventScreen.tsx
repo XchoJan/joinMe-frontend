@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,23 +9,15 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { Event, EventFormat, PaymentType } from '../types';
+import { Event, PaymentType } from '../types';
 import { useApp } from '../context/AppContext';
 import { Input } from '../components/Input';
 import { Picker } from '../components/Picker';
 import { Button } from '../components/Button';
 import { colors, spacing, typography } from '../theme/colors';
-
-const FORMAT_OPTIONS: { label: string; value: EventFormat }[] = [
-  { label: 'Кофе', value: 'coffee' },
-  { label: 'Прогулка', value: 'walk' },
-  { label: 'Обед', value: 'lunch' },
-  { label: 'Ужин', value: 'dinner' },
-  { label: 'Активность', value: 'activity' },
-  { label: 'Другое', value: 'other' },
-];
+import BackIcon from '../assets/icons/BackIcon';
 
 const PAYMENT_OPTIONS: { label: string; value: PaymentType }[] = [
   { label: 'Пополам', value: 'dutch' },
@@ -59,11 +51,16 @@ const CITIES = [
 
 export const CreateEventScreen: React.FC = () => {
   const navigation = useNavigation();
+  const route = useRoute();
   const { currentUser, addEvent } = useApp();
   const scrollViewRef = useRef<ScrollView>(null);
   const [loading, setLoading] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
+  
+  // Получаем параметры из навигации (название и город заведения)
+  const routeParams = route.params as { venueName?: string; venueCity?: string } | undefined;
+  
   // Устанавливаем минимальную дату на вчера, чтобы сегодняшняя дата всегда была доступна
   const getMinimumDate = () => {
     const yesterday = new Date();
@@ -93,18 +90,31 @@ export const CreateEventScreen: React.FC = () => {
   const [selectedTime, setSelectedTime] = useState(now);
   const [minimumDate] = useState(getMinimumDate());
   const [formData, setFormData] = useState({
-    title: '',
+    title: '', // Название события заполняет пользователь
     description: '',
-    city: '',
-    location: '',
+    city: routeParams?.venueCity || '',
+    location: routeParams?.venueName || '', // Название заведения заполняет поле "Место"
     date: formatDate(todayStart), // Автоматически устанавливаем сегодняшнюю дату
     time: formatTime(now), // Автоматически устанавливаем текущее время
-    format: '' as EventFormat | '',
     paymentType: '' as PaymentType | '',
     participantLimit: '',
     currentParticipants: '1', // По умолчанию 1 (только автор)
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Обновляем форму при изменении параметров маршрута
+  useEffect(() => {
+    if (routeParams?.venueName) {
+      setFormData(prev => ({ ...prev, location: routeParams.venueName || prev.location }));
+    }
+    if (routeParams?.venueCity) {
+      setFormData(prev => ({ ...prev, city: routeParams.venueCity || prev.city }));
+    }
+  }, [routeParams]);
+
+  // Если нет параметров заведения, перенаправляем на экран выбора
+  // Но только если мы не пришли из SelectVenue (т.е. нет параметров)
+  // Это предотвратит бесконечный редирект
 
   if (!currentUser) {
     return (
@@ -151,7 +161,6 @@ export const CreateEventScreen: React.FC = () => {
     if (!formData.location.trim()) newErrors.location = 'Введите место';
     if (!formData.date.trim()) newErrors.date = 'Введите дату';
     if (!formData.time.trim()) newErrors.time = 'Введите время';
-    if (!formData.format) newErrors.format = 'Выберите формат';
     if (!formData.paymentType) newErrors.paymentType = 'Выберите, кто платит';
     if (!formData.participantLimit || parseInt(formData.participantLimit) < 1) {
       newErrors.participantLimit = 'Введите лимит участников (минимум 1)';
@@ -327,6 +336,18 @@ export const CreateEventScreen: React.FC = () => {
         participantLimit = 2;
       }
 
+      // Определяем формат автоматически на основе названия заведения
+      // Если не удалось определить, используем 'other'
+      let eventFormat: 'coffee' | 'walk' | 'lunch' | 'dinner' | 'activity' | 'other' = 'other';
+      const titleLower = formData.title.toLowerCase();
+      if (titleLower.includes('кафе') || titleLower.includes('кофе')) {
+        eventFormat = 'coffee';
+      } else if (titleLower.includes('ресторан') || titleLower.includes('обед') || titleLower.includes('ужин')) {
+        eventFormat = titleLower.includes('ужин') ? 'dinner' : 'lunch';
+      } else if (titleLower.includes('бар') || titleLower.includes('паб')) {
+        eventFormat = 'dinner';
+      }
+
       const eventData = {
         title: formData.title.trim(),
         description: formData.description.trim(),
@@ -334,7 +355,7 @@ export const CreateEventScreen: React.FC = () => {
         location: formData.location.trim(),
         date: formattedDate,
         time: formattedTime,
-        format: formData.format as EventFormat,
+        format: eventFormat,
         paymentType: formData.paymentType as PaymentType,
         participantLimit: participantLimit,
         currentParticipants: parseInt(formData.currentParticipants) || 1,
@@ -367,6 +388,12 @@ export const CreateEventScreen: React.FC = () => {
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.header}>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => navigation.goBack()}
+            >
+              <BackIcon width={24} height={24} fill={colors.text} />
+            </TouchableOpacity>
             <Text style={styles.title}>Создать событие</Text>
           </View>
 
@@ -477,18 +504,6 @@ export const CreateEventScreen: React.FC = () => {
           </View>
 
           <Picker
-            label="Формат"
-            value={formData.format}
-            options={FORMAT_OPTIONS}
-            onSelect={(value) => {
-              setFormData({ ...formData, format: value as EventFormat });
-              setErrors({ ...errors, format: '' });
-            }}
-            placeholder="Выберите формат"
-            error={errors.format}
-          />
-
-          <Picker
             label="Кто платит"
             value={formData.paymentType}
             options={PAYMENT_OPTIONS}
@@ -554,11 +569,18 @@ const styles = StyleSheet.create({
     padding: spacing.md,
   },
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: spacing.lg,
+  },
+  backButton: {
+    marginRight: spacing.md,
+    padding: spacing.xs,
   },
   title: {
     ...typography.h1,
     color: colors.text,
+    flex: 1,
   },
   buttonContainer: {
     marginTop: spacing.lg,

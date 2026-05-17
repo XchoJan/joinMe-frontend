@@ -1,4 +1,4 @@
-package com.joinme
+package com.theJoinMe.app
 
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate

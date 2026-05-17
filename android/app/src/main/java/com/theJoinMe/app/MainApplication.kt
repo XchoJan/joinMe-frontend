@@ -1,4 +1,4 @@
-package com.joinme
+package com.theJoinMe.app
 
 import android.app.Application
 import com.facebook.react.PackageList

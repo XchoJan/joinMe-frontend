@@ -87,7 +87,7 @@ export const UserProfileScreen: React.FC = () => {
           <View style={styles.avatar}>
             {user.photo ? (
               <Image
-                source={{ uri: user.photo }}
+                source={{ uri: 'https://musicialconnect.com/' + user.photo }}
                 style={styles.avatarImage}
                 resizeMode="cover"
               />

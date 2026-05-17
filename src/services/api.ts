@@ -1,18 +1,16 @@
 import { Platform } from 'react-native';
 import axios from 'axios';
 
-// Production URL - всегда используем продакшен сервер
-// Для локальной разработки раскомментируйте нужный URL ниже
+// Локальный бэкенд для разработки
 const getApiBaseUrl = () => {
-  // Для локальной разработки используем локальный сервер
   if (Platform.OS === 'android') {
     // Для Android эмулятора
-    return 'http://10.0.2.2:3000';
+    return 'http://10.0.2.2:4000/api';
     // Для реального Android устройства укажите IP вашего компьютера:
-    // return 'http://192.168.1.XXX:3000'; // Замените XXX на ваш IP
+    // return 'http://192.168.1.XXX:4000/api'; // Замените XXX на ваш IP
   }
   // Для iOS симулятора
-  return 'http://localhost:3000';
+  return 'http://localhost:4000/api';
   
   // Продакшен URL (закомментирован для локальной разработки):
   // return 'https://musicialconnect.com/api';

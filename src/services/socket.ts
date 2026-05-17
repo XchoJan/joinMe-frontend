@@ -1,19 +1,21 @@
 import io, { Socket } from 'socket.io-client';
-import { Platform } from 'react-native';
+import { Alert, Platform } from 'react-native';
 
-// Socket URL для локальной разработки
+// Локальный Socket URL для разработки
+// Socket.io автоматически добавляет /socket.io к базовому URL
+
 const getSocketUrl = () => {
   if (Platform.OS === 'android') {
     // Для Android эмулятора
-    return 'http://10.0.2.2:3000';
+    return 'http://10.0.2.2:4000';
     // Для реального Android устройства укажите IP вашего компьютера:
-    // return 'http://192.168.1.XXX:3000'; // Замените XXX на ваш IP
+    // return 'http://192.168.1.XXX:4000'; // Замените XXX на ваш IP
   }
   // Для iOS симулятора
-  return 'http://localhost:3000';
+  return 'http://localhost:4000';
   
   // Продакшен URL (закомментирован для локальной разработки):
-  // return 'https://musicialconnect.com/socket.io/';
+  // return 'https://musicialconnect.com';
 };
 
 const SOCKET_URL = getSocketUrl();
@@ -22,6 +24,7 @@ class SocketService {
   private socket: Socket | null = null;
   private isConnected: boolean = false;
   private joinedChats: Set<string> = new Set();
+  private hasShownConnectionAlert: boolean = false;
 
   connect() {
     if (this.socket?.connected) {
@@ -37,6 +40,16 @@ class SocketService {
 
     this.socket.on('connect', () => {
       this.isConnected = true;
+
+      // Показываем Alert только один раз при первом подключении
+      // if (!this.hasShownConnectionAlert) {
+      //   this.hasShownConnectionAlert = true;
+      //   Alert.alert(
+      //     'Сокет подключен',
+      //     'Успешное подключение к серверу',
+      //     [{ text: 'OK' }]
+      //   );
+      // }
     });
 
     this.socket.on('disconnect', () => {

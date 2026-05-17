@@ -11,7 +11,9 @@
     "i15": "npx react-native run-ios --simulator='iPhone 15'",
     "i14": "npx react-native run-ios --simulator='iPhone 14'",
     "i15pm": "npx react-native run-ios --simulator='iPhone 15 Pro Max'",
-    "pds": "cd ios && pod install && cd .."
+    "pds": "cd ios && pod install && cd ..",
+    "aab": "react-native build-android --mode=release && open ./android/app/build/outputs/bundle/release",
+    "apk": "react-native bundle --platform android --dev false --entry-file index.js --bundle-output android/app/src/main/assets/index.android.bundle && cd ./android && ./gradlew app:assembleRelease && open ./app/build/outputs/apk/release"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "^1.21.0",
